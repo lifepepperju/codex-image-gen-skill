@@ -20,6 +20,47 @@ ChatGPT サブスクリプション内（追加課金ゼロ・APIキー不要）
 
 含まないもの: インフォグラフィック・図解・グラフ(別途 HTML+Chrome / `dataviz` スキル側で対応)。
 
+### 用途別の使い分け(条件分岐)
+
+「何を作りたいか」によって、内部で使う手段が自動的に切り替わる。この判断を誤ると
+プロンプトをどれだけ工夫しても品質が上がらないため、スキルの中核ロジックになっている。
+
+| 作りたいもの | 使う手段 |
+|---|---|
+| 写真/イラスト調の背景ビジュアル(バナー、LPヒーロー、SNS投稿の絵など) | `image_gen`(AI生成) |
+| ロゴ・見出し・コピーなどの文字要素 | AIには描かせない。実ロゴファイル＋実フォントを HTML+Chrome で後から合成する |
+| インフォグラフィック・図解・比較表・手順図 | HTML+Chrome のみで作成する(AI生成は使わない) |
+| アイコン | ①AI生成→ベクター化(質重視・自由度が高い) または ②既製アイコンセット(速度重視・画風が揃う) |
+| データのグラフ・チャート | HTML/SVG ＋ `dataviz` スキル ＋ 実データ(数値は作らない) |
+| 実際の地図・地形 | 地理データSVG(パブリックドメイン等)を別途調達する。アイコンセットには無い |
+| 人物の顔を似せたい | `image_gen` は参照画像を受け取れない。写真の特徴をまず英語で言語化し、その描写文をプロンプトに焼き込む2段階方式を使う |
+| UI・画面モック(見た目の方向性確認のみ) | `image_gen` を例外的に使用。画面構成の詰め・実装への受け渡しは Claude Design が本筋(この画像は実装仕様として渡さない) |
+
+### 対応する主な出力サイズ(媒体別)
+
+`image_gen` はプロンプトでピクセル数を直接指定できない(縦横比の言葉でしか寄せられない)ため、
+生成後に `sips` 等で目的サイズへリサイズする。よく使うサイズ:
+
+| 用途 | サイズ |
+|---|---|
+| Instagram 正方形 | 1080×1080 |
+| Meta広告 横長 | 1200×628 |
+| Instagramストーリー | 1080×1920 |
+| Xカード | 1200×675 |
+| YouTubeサムネイル | 1280×720 |
+| OGP画像 | 1200×630 |
+| PC画面モック | 1600×900 / 1440×900 |
+| スマホ画面モック | 390×844 |
+
+### SVGへの出力について
+
+- `image_gen`(AIモデル)自体は**ラスター(PNG)のみ**を出力する。SVGを直接生成することはできない。
+- ただしスキルの後工程で、以下の2箇所は SVG 出力に対応している。
+  - **アイコン**: 生成した PNG を `potrace` でベクター化し、`currentColor` に対応した SVG として出力する(CSSで色を変えられる)
+  - **バナー等の合成物**: 背景はラスターのまま、ロゴ(ベクター)・見出し・サブコピー・CTA をテキストレイヤーとして持つ
+    SVG を別途生成できる。PNG とほぼ同一の見た目になり、Figma に読み込むと「背景=画像レイヤー / ロゴ=ベクター / 文字=テキストレイヤー」として編集できる
+- 透過背景は非対応(既定モデル `gpt-image-2` は透過を出力できない)。必要な場合は生成後に背景を抜く。
+
 ### インストール
 
 このリポジトリの `codex-image-gen/` フォルダを、Claude Code の skills ディレクトリにコピーする。
@@ -56,6 +97,48 @@ Triggers on prompts like "generate an image", "make a banner with Codex", "creat
 - Includes a pre-delivery QA routine (zoomed-in checks for AI-specific artifacts like broken hands/text)
 
 Not covered: infographics, diagrams, or charts (handled separately via HTML+Chrome / the `dataviz` skill).
+
+### Decision logic: which tool for which asset
+
+What you're trying to create determines which method the skill uses internally. Getting this
+branch wrong is the most common failure mode — no amount of prompt tweaking fixes it — so it's
+the core logic of the skill.
+
+| What you want | Method used |
+|---|---|
+| Photo/illustration-style background visual (banner, LP hero, social post art) | `image_gen` (AI generation) |
+| Logo, headline, or copy | Never AI-drawn — composited afterward onto the background using the real logo file and real fonts via HTML+Chrome |
+| Infographics, diagrams, comparison tables, step-by-step illustrations | HTML+Chrome only (no AI generation) |
+| Icons | ① AI-generate then vectorize (higher quality, more freedom) or ② use a ready-made icon set (faster, consistent style) |
+| Data charts/graphs | HTML/SVG + the `dataviz` skill + real data (never fabricate numbers) |
+| Real maps/terrain | Sourced separately as geographic SVG data (e.g. public domain) — not available in icon sets |
+| Matching a real person's face | `image_gen` can't take a reference image. Instead, the photo's features are described in English first, then that description is baked into the generation prompt (two-step relay) |
+| UI/screen mockups (rough look-and-feel only) | `image_gen` used as an exception; actual screen design and implementation handoff goes through Claude Design instead (this image is never handed off as a spec) |
+
+### Common output sizes (by platform)
+
+`image_gen` can't be told an exact pixel size directly (only aspect ratio, via wording like
+"tall 9:16 composition"), so the skill resizes to the target dimensions afterward with `sips`.
+Frequently used sizes:
+
+| Use case | Size |
+|---|---|
+| Instagram square | 1080×1080 |
+| Meta Ads landscape | 1200×628 |
+| Instagram Story | 1080×1920 |
+| X (Twitter) card | 1200×675 |
+| YouTube thumbnail | 1280×720 |
+| OGP image | 1200×630 |
+| Desktop UI mockup | 1600×900 / 1440×900 |
+| Mobile UI mockup | 390×844 |
+
+### Does it output SVG?
+
+- The AI model (`image_gen`) itself only outputs **raster PNGs** — it cannot generate SVG directly.
+- The skill's post-processing pipeline does add SVG output in two places:
+  - **Icons**: the generated PNG is vectorized with `potrace` into an SVG that supports `currentColor` (so its color can be controlled via CSS)
+  - **Composited banners**: alongside the PNG, the skill can emit an SVG with the background as a raster image layer, the logo as a vector, and the headline/subcopy/CTA as editable text layers — nearly identical in appearance to the PNG, and editable in Figma as "background = image layer / logo = vector / text = text layers"
+- Transparent backgrounds are not supported (the default model, `gpt-image-2`, cannot output transparency). If needed, the background must be removed afterward.
 
 ### Install
 
