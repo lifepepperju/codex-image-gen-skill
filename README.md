@@ -61,30 +61,23 @@ ChatGPT サブスクリプション内（追加課金ゼロ・APIキー不要）
     SVG を別途生成できる。PNG とほぼ同一の見た目になり、Figma に読み込むと「背景=画像レイヤー / ロゴ=ベクター / 文字=テキストレイヤー」として編集できる
 - 透過背景は非対応(既定モデル `gpt-image-2` は透過を出力できない)。必要な場合は生成後に背景を抜く。
 
-### 同梱の関連エージェント
+### 依存するエージェント・スキルは無い(自己完結)
 
-SKILL.md セクション7.5(マーケレビュー・ゲート)から呼び出される、マーケティング事業部の4エージェントを
-`agents/` フォルダに同梱した。エージェント未導入の環境でも、このリポジトリだけでレビュー呼び出し先が揃う。
+このスキルは**単体で動く**。別途エージェントを入れる必要はない。
 
-| エージェント | 役割 | 呼ばれる場面 |
-|---|---|---|
-| `mkt-visual-creative` | バナー・動画等ビジュアル制作の専任 | ビジュアル仕様・媒体別の作り分けを相談するとき |
-| `mkt-paid` | 広告運用・メディアプラン | Paid配信の審査・入稿要件が絡むとき |
-| `mkt-social` | SNSオーガニック運用 | オーガニック投稿の設計を相談するとき |
-| `mkt-cmo` | マーケ領域の複合タスクの入口 | 複数媒体・複数区分にまたがるとき |
+以前は納品前のレビュー工程で社内のマーケエージェント(`mkt-visual-creative` / `mkt-paid` / `mkt-social` / `mkt-cmo`)を
+呼ぶ設計だったが、それらの中身を精査したところ、画像1枚のレビューに実際に使えるのは全体のごく一部だった
+(大半は広告アカウント監査・メディアプラン・投稿カレンダー等でこのスキルとは無関係、かつ社内の別スキル群が前提)。
+そのため**必要な観点だけを SKILL.md セクション7.5 に直接書き起こし、エージェント依存を無くした**。
 
-**注意**: これらのエージェント自身は、社内の `ads-*` スキル群や他の `mkt-*` エージェント(`mkt-strategist` / `mkt-text-content` 等)、
-`workflows.md` などをさらに参照している箇所がある。それらは本リポジトリには含まれていないため、参照先が無い場合は
-その部分の指示が使えないか、エージェントが「該当スキルが見当たらない」と応答することがある。最低限、上記4体を導入すれば
-`codex-image-gen` 本体からのマーケレビュー呼び出しは機能する。
+| 元のエージェント | 取り込んだ観点 |
+|---|---|
+| `mkt-visual-creative` | 生成前の確認項目(ブランドGL・NG表現・避けたい色味・既存素材)、権利と出所の記録 |
+| `mkt-paid` | 法規制の観点(薬機法・景表法) |
+| `mkt-social` | 媒体ごとの作法(1枚を全媒体に使い回さない)、ステマ規制 |
+| `mkt-cmo` | 取り込みなし(振り分け役のみで、レビューの知識を持たないため) |
 
-```bash
-# プロジェクト単位で使う場合
-cp agents/*.md /path/to/project/.claude/agents/
-
-# 全プロジェクト共通で使う場合
-cp agents/*.md ~/.claude/agents/
-```
+社内のマーケエージェントが導入済みの環境なら、同じ材料を渡して意見を求めてもよい(任意・無くても成立する)。
 
 ### インストール
 
@@ -165,32 +158,26 @@ Frequently used sizes:
   - **Composited banners**: alongside the PNG, the skill can emit an SVG with the background as a raster image layer, the logo as a vector, and the headline/subcopy/CTA as editable text layers — nearly identical in appearance to the PNG, and editable in Figma as "background = image layer / logo = vector / text = text layers"
 - Transparent backgrounds are not supported (the default model, `gpt-image-2`, cannot output transparency). If needed, the background must be removed afterward.
 
-### Bundled related agents
+### No agent or skill dependencies (self-contained)
 
-The 4 marketing-department agents called from the marketing-review gate (SKILL.md section 7.5) are bundled
-in the `agents/` folder, so the review call targets exist even in an environment where the org's agents
-aren't installed yet.
+This skill **works on its own**. No additional agents need to be installed.
 
-| Agent | Role | When it's called |
-|---|---|---|
-| `mkt-visual-creative` | Dedicated visual production (banners, video, etc.) | Consulting on visual specs / per-platform variants |
-| `mkt-paid` | Paid ad ops & media planning | When paid-distribution review/submission requirements are involved |
-| `mkt-social` | Organic social ops | Designing organic post placement |
-| `mkt-cmo` | Entry point for cross-cutting marketing tasks | When the task spans multiple platforms/categories |
+An earlier version delegated the pre-delivery review step to internal marketing agents
+(`mkt-visual-creative`, `mkt-paid`, `mkt-social`, `mkt-cmo`). On closer inspection, only a small
+fraction of those agents was actually applicable to reviewing a single generated image — the bulk of
+them covers ad-account auditing, media planning, and posting calendars, none of which this skill touches,
+and they in turn depend on other internal skill suites. So **the applicable criteria were written directly
+into SKILL.md section 7.5 instead, removing the agent dependency**.
 
-**Note**: these agents themselves reference further internal resources in places — the `ads-*` skill suite,
-other `mkt-*` agents (`mkt-strategist`, `mkt-text-content`, etc.), and a `workflows.md` file — none of which
-are included in this repo. If those aren't present, that part of the instructions simply won't be usable, or
-the agent may report it can't find the referenced skill. Installing just these 4 agents is enough for the
-marketing-review gate inside `codex-image-gen` itself to work.
+| Original agent | What was carried over |
+|---|---|
+| `mkt-visual-creative` | Pre-generation checks (brand guidelines, prohibited expressions, colors to avoid, existing assets), plus rights/provenance recording |
+| `mkt-paid` | Regulatory angle (Japanese pharmaceutical-advertising and fair-labeling law) |
+| `mkt-social` | Per-platform etiquette (don't reuse one image everywhere), influencer-disclosure rules |
+| `mkt-cmo` | Nothing — it's purely a dispatcher and holds no review knowledge |
 
-```bash
-# Per-project
-cp agents/*.md /path/to/project/.claude/agents/
-
-# Global (all projects)
-cp agents/*.md ~/.claude/agents/
-```
+If those marketing agents happen to be installed in your environment, you can still hand them the same
+material for a second opinion — but it's optional, and the skill is complete without them.
 
 ### Install
 
