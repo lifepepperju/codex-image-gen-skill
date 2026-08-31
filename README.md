@@ -55,10 +55,13 @@ ChatGPT サブスクリプション内（追加課金ゼロ・APIキー不要）
 ### SVGへの出力について
 
 - `image_gen`(AIモデル)自体は**ラスター(PNG)のみ**を出力する。SVGを直接生成することはできない。
-- ただしスキルの後工程で、以下の2箇所は SVG 出力に対応している。
-  - **アイコン**: 生成した PNG を `potrace` でベクター化し、`currentColor` に対応した SVG として出力する(CSSで色を変えられる)
-  - **バナー等の合成物**: 背景はラスターのまま、ロゴ(ベクター)・見出し・サブコピー・CTA をテキストレイヤーとして持つ
-    SVG を別途生成できる。PNG とほぼ同一の見た目になり、Figma に読み込むと「背景=画像レイヤー / ロゴ=ベクター / 文字=テキストレイヤー」として編集できる
+- **自分で座標を書いた成果物は SVG も既定で出す。** 線引きは「誰がレイアウトを決めたか」(SKILL.md セクション7.6)。
+  - **アイコン**: 生成した PNG を `potrace` でベクター化し、`currentColor` に対応した SVG として出力する(CSSで色を変えられる)。**SVGが主**でPNGは出さない
+  - **バナー等の合成物・データのグラフ**: 背景はラスターのまま、ロゴ(ベクター)・見出し・サブコピー・CTA をテキストレイヤーとして持つ
+    SVG を **PNG と併せて既定で出力する**。Figma に読み込むと「背景=画像レイヤー / ロゴ=ベクター / 文字=テキストレイヤー」として編集できる
+  - **インフォグラフィック・図解**: 要求時のみ(HTML で組んでいるため、SVG 版は手座標での組み直しになる)
+- **AI が絵として描いたもの(写真風ビジュアル・UI画面モック)には SVG を出さない。** ベクター化する手段が無く、PNG を包んだ SVG は
+  `<image>` タグ1個の箱になる。実測では 1.03MB の PNG が 1.37MB(**1.33倍**)になり、編集できる要素は**1個だけ**だった
 - 透過背景は非対応(既定モデル `gpt-image-2` は透過を出力できない)。必要な場合は生成後に背景を抜く。
 
 ### 依存するエージェント・スキルは無い(自己完結)
@@ -153,9 +156,12 @@ Frequently used sizes:
 ### Does it output SVG?
 
 - The AI model (`image_gen`) itself only outputs **raster PNGs** — it cannot generate SVG directly.
-- The skill's post-processing pipeline does add SVG output in two places:
-  - **Icons**: the generated PNG is vectorized with `potrace` into an SVG that supports `currentColor` (so its color can be controlled via CSS)
-  - **Composited banners**: alongside the PNG, the skill can emit an SVG with the background as a raster image layer, the logo as a vector, and the headline/subcopy/CTA as editable text layers — nearly identical in appearance to the PNG, and editable in Figma as "background = image layer / logo = vector / text = text layers"
+- **Anything whose layout you authored yourself gets an SVG by default.** The dividing line is who decided the layout (SKILL.md section 7.6).
+  - **Icons**: the generated PNG is vectorized with `potrace` into an SVG that supports `currentColor` (so its color can be controlled via CSS). The SVG is the primary deliverable — no PNG is shipped
+  - **Composited banners and data charts**: the SVG is emitted **by default alongside the PNG**, with the background as a raster image layer, the logo as a vector, and the headline/subcopy/CTA as editable text layers — editable in Figma as "background = image layer / logo = vector / text = text layers"
+  - **Infographics and diagrams**: on request only (they are built in HTML, so an SVG version means re-laying it out by hand coordinates)
+- **Never wrap an AI-drawn image (photographic visuals, UI mockups) in an SVG.** There is no way to vectorize it, so the result is a box holding a single
+  `<image>` tag. Measured: a 1.03 MB PNG became 1.37 MB (**1.33x**) with exactly **one** editable element.
 - Transparent backgrounds are not supported (the default model, `gpt-image-2`, cannot output transparency). If needed, the background must be removed afterward.
 
 ### No agent or skill dependencies (self-contained)
